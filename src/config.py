@@ -1,15 +1,25 @@
+from pathlib import Path
 import transformers
-import os
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MAX_LEN = 128
-TRAIN_BATCH_SIZE = 8
+# Project root
+BASE_DIR = Path(__file__).resolve().parents[1]
+
+MAX_LEN = 32
+TRAIN_BATCH_SIZE = 4
 VALID_BATCH_SIZE = 8
-EPOCHS = 4
-BASE_MODEL_PATH = "bert-base-uncased"
-MODEL_PATH = 'model.bin'
-TRAINING_FILE = os.path.join(BASE_DIR, "input", "ner_dataset.csv")
+EPOCHS = 1
+
+# Use local folder
+BASE_MODEL_PATH = BASE_DIR / "input" / "bert_base_uncased"
+
+# Dataset 
+TRAINING_FILE = BASE_DIR / "input" / "ner_dataset.csv"
+
+# Save/load fine-tuned weights to project root
+MODEL_PATH = BASE_DIR / "model.bin"
+
 TOKENIZER = transformers.BertTokenizer.from_pretrained(
-    BASE_MODEL_PATH,
-    do_lower_case = True
+    str(BASE_MODEL_PATH),
+    do_lower_case=True,
+    local_files_only=True
 )

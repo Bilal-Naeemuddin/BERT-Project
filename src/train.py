@@ -7,18 +7,19 @@ import torch
 from sklearn import preprocessing
 from sklearn import model_selection
 
-from transformers import AdamW
+from torch.optim import AdamW
 from transformers import get_linear_schedule_with_warmup
 
 import config
-import dataset
+import dataset as dataset
 import engine
 from model import EntityModel
+from pathlib import Path
 
 
 def process_data(data_path):
     df = pd.read_csv(data_path, encoding="latin-1")
-    df.loc[:, "Sentence #"] = df["Sentence #"].fillna(method="ffill")
+    df.loc[:, "Sentence #"] = df["Sentence #"].ffill()
 
     enc_pos = preprocessing.LabelEncoder()
     enc_tag = preprocessing.LabelEncoder()
@@ -29,6 +30,12 @@ def process_data(data_path):
     sentences = df.groupby("Sentence #")["Word"].apply(list).values
     pos = df.groupby("Sentence #")["POS"].apply(list).values
     tag = df.groupby("Sentence #")["Tag"].apply(list).values
+
+    sentences = sentences[:500]
+
+    pos = pos[:500]
+
+    tag = tag[:500]
     return sentences, pos, tag, enc_pos, enc_tag
 
 
@@ -70,9 +77,13 @@ if __name__ == "__main__":
         valid_dataset, batch_size=config.VALID_BATCH_SIZE, num_workers=1
     )
 
-    device = torch.device("cuda")
-    model = EntityModel(num_tag=num_tag, num_pos=num_pos)
-    model.to(device)
+    device = torch.device("cpu")
+    model = EntityModel(num_tag=num_tag, num_pos=num_pos).to(device)
+
+    # resume training if checkpoint exists
+    if Path(config.MODEL_PATH).exists():
+        state = torch.load(config.MODEL_PATH, map_location=device, weights_only=True)
+        model.load_state_dict(state)
 
     param_optimizer = list(model.named_parameters())
     no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
